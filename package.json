@@ -1,0 +1,18 @@
+{
+  "name": "lambda",
+  "version": "0.1.0",
+  "description": "Trivial untyped lambda calculus implementation",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "license": "UNLICENSED",
+  "main": "out/lambda.js",
+  "repository": ".",
+  "author": "Jan Rapp",
+  "devDependencies": {
+    "typescript": "next"
+  },
+  "dependencies": {
+  }
+}
