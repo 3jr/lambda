@@ -286,6 +286,7 @@ module lamdda {
 
   export function test() {
     let definitions = `
+id = λa a;
 0 = λf λn n;
 1 = λf λn f n;
 2 = λf λn f (f n);
@@ -320,6 +321,10 @@ not = λa a F T;
 ^^ = λa λb a (not b) b; // (not lazy (hehe)) xor
 
 Y = λf (λx f (x x)) (λx f (x x));
+//Y_  = λf λa (λx λb f (x x) b) (λx λb f (x x) b) a;
+//Y_2 = λf λa f [(λx λb f (x x) b) (λx λb f (x x) b)] a;
+//Y_3 = λf λa f (λa1 f [(λx λb f (x x) b) (λx λb f (x x) b)] a1) a;
+//Y_3 = λf λa f (λa1 f (λa2 f [(λx λb f (x x) b) (λx λb f (x x) b)] a2) a1) a;
 isZero = λa a (λb F) T;
 fac = Y (λfac_ λn (isZero n) 1 (* n (fac_ (- n 1)))); // very slow when simplifing
 
