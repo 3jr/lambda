@@ -78,7 +78,7 @@ module lamdda {
       defs.set(exp, new Var(varName));
     }
     let [exp, expHash] = replace(e);
-    return tryReplace(exp, expHash);
+    return tryReplace(exp, e, expHash);
     function replace(e: Exp): [Exp, string] {
       if (e.k === "Var") {
         return [new Var(e.name), "v"];
@@ -86,20 +86,20 @@ module lamdda {
         let [fun, funHash] = replace(e.fun);
         let [arg, argHash] = replace(e.arg);
         return [
-          new Apply(tryReplace(fun, funHash), tryReplace(arg, argHash)),
+          new Apply(tryReplace(fun, e, funHash), tryReplace(arg, e, argHash)),
           "(" + funHash + " " + argHash + ")",
         ];
       } else if (e.k === "Lambda") {
         let [exp, expHash] = replace(e.exp);
         return [
-          new Lambda(e.arg, tryReplace(exp, expHash)),
+          new Lambda(e.arg, tryReplace(exp, e, expHash)),
           "(λ" + "v" + " " + expHash + ")",
         ];
       }
       throw "invliad node in expression";
     }
-    function tryReplace(e: Exp, hash: string) {
-      return defs.hintGet(e, hash) || e;
+    function tryReplace(newE: Exp, originalE: Exp, hash: string) {
+      return defs.hintGet(originalE, hash) || newE;
     }
     function hash(e: Exp): string {
       if (e.k === "Var") {
@@ -115,7 +115,7 @@ module lamdda {
 
   function equal(a: Exp, b: Exp): boolean {
     if (a.k === "Var" && b.k === "Var") {
-      return a.name === b.name;
+      return a === b;
     } else if (a.k === "Apply" && b.k === "Apply") {
       return equal(a.fun, b.fun) && equal(a.arg, b.arg);
     } else if (a.k === "Lambda" && b.k === "Lambda") {
@@ -126,7 +126,7 @@ module lamdda {
 
   function replace(e: Exp, v: Var, replaceE: Exp): Exp {
     if (e.k === "Var") {
-      return e.name === v.name ? replaceE : e;
+      return e === v ? replaceE : e;
     } else if (e.k === "Apply") {
       return new Apply(replace(e.fun, v, replaceE), replace(e.arg, v, replaceE));
     } else if (e.k === "Lambda") {
@@ -270,7 +270,7 @@ module lamdda {
   function parseDef(s: string, scope: Map<string, Exp> = new Map<string, Exp>()): Map<string, Exp> {
     s = s.split(new RegExp("//[^\n]*\n", "g")).join("");  // remove comments
     for (let def of s.split(";")) {
-      let varNameAndExprStr = def.trim().split("=", 2);
+      let varNameAndExprStr = def.trim().split(" = ", 2);
       if (varNameAndExprStr.length === 1 && varNameAndExprStr[0].length === 0) { continue; }
       if (varNameAndExprStr.length !== 2) { throw "too many or too little '='"; }
       let [varName, exprString] = varNameAndExprStr;
@@ -315,8 +315,8 @@ tup = λp pair (+1 (1. p)) (1. p);
 
 T = λt λf t; // true
 F = λt λf f; // false // is the same as 0
-&& = λa λb a b F; // lazy or
-|| = λa λb a T b; // lazy and
+&& = λa λb a b F; // lazy and 
+|| = λa λb a T b; // lazy or
 not = λa a F T;
 ^^ = λa λb a (not b) b; // (not lazy (hehe)) xor
 
@@ -326,8 +326,13 @@ Y = λf (λx f (x x)) (λx f (x x));
 //Y_3 = λf λa f (λa1 f [(λx λb f (x x) b) (λx λb f (x x) b)] a1) a;
 //Y_3 = λf λa f (λa1 f (λa2 f [(λx λb f (x x) b) (λx λb f (x x) b)] a2) a1) a;
 isZero = λa a (λb F) T;
-fac = Y (λfac_ λn (isZero n) 1 (* n (fac_ (- n 1)))); // very slow when simplifing
+//fac = Y (λfac_ λn (isZero n) 1 (* n (fac_ (- n 1)))); // very slow when simplifing
 
+= = λa λb && (isZero (- a b)) (isZero (- b a));
+> = λa λb isZero (- a b);
+<= = λa λb not (> a b);
+< = λa λb && (<= a b) (not (= a b));
+>= = λa λb not (< a b);
 `;
     let defs = parseDef(definitions);
     for (let [v, e] of defs) {
@@ -367,9 +372,24 @@ fac = Y (λfac_ λn (isZero n) 1 (* n (fac_ (- n 1)))); // very slow when simpli
     parseSimplifyPrint("^^ F F", defs);
     // count down to zero (from 5)
     parseSimplifyPrint("Y (λf λa (isZero a) a (f (-1 a))) 5", defs);
-    parseSimplifyPrint("fac 3", defs);
+    //parseSimplifyPrint("fac 3", defs);
+    parseSimplifyPrint("> 0 3", defs);
+    parseSimplifyPrint("> 4 3", defs);
+    parseSimplifyPrint("< 0 3", defs);
+    parseSimplifyPrint("< 4 3", defs);
+    parseSimplifyPrint("< 3 3", defs);
+    parseSimplifyPrint("= 0 3", defs);
+    parseSimplifyPrint("= 4 3", defs);
+    parseSimplifyPrint("= 2 3", defs);
+    parseSimplifyPrint("= 2 2", defs);
+    parseSimplifyPrint2("(λf λt λf f) id", defs);
     function parseSimplifyPrint(s: string, scope: Map<string, Exp>) {
       out(s + " --> " + pprint(replaceDef(simplify(parse(s, scope)), scope)));
+    }
+    function parseSimplifyPrint2(s: string, scope: Map<string, Exp>) {
+      out(s + " --> " +pprint(simplify(parse(s, scope))) + "\n ---> "
+        + pprint(replaceDef(simplify(parse(s, scope)), scope))
+      );
     }
     function simplifyPrintSteps(s: string, scope: Map<string, Exp>) {
       let e = parse(s, scope);
