@@ -1,4 +1,4 @@
-module lamdda {
+namespace lamdda {
   type Exp = Apply | Var | Lambda;
 
   class Apply {
@@ -142,7 +142,7 @@ module lamdda {
       curE = simplifyOnce(curE);
       if (equal(oldE, curE)) { return curE; }
     }
-    console.log("unable to simplify")
+    console.log("unable to simplify");
     return e;
   }
 
@@ -239,7 +239,7 @@ module lamdda {
         let e = p0();
         if (s[i] !== ")") { throw "missing closing paren"; }
         i++;
-        ws()
+        ws();
         return e;
       }
       let varName = id();
@@ -248,7 +248,7 @@ module lamdda {
       return exp;
     }
     function id(): string {
-      let r = ""
+      let r = "";
       for (; i < len && isLetter(s[i]); i++) {
         r += s[i];
       }
@@ -387,8 +387,9 @@ isZero = λa a (λb F) T;
       out(s + " --> " + pprint(replaceDef(simplify(parse(s, scope)), scope)));
     }
     function parseSimplifyPrint2(s: string, scope: Map<string, Exp>) {
-      out(s + " --> " +pprint(simplify(parse(s, scope))) + "\n ---> "
-        + pprint(replaceDef(simplify(parse(s, scope)), scope))
+      out(
+        s + " --> " + pprint(simplify(parse(s, scope))) + "\n ---> "
+        + pprint(replaceDef(simplify(parse(s, scope)), scope)),
       );
     }
     function simplifyPrintSteps(s: string, scope: Map<string, Exp>) {
